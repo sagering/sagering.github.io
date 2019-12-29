@@ -1,0 +1,102 @@
+<html>
+
+<head>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+  <div class="header">
+    <h1>The Typist</h1>
+    <p id="inst_txt">Just start typing.</p>
+  </div>
+  <div class="topnav">
+    <p></p>
+  </div>
+  <div class="container">
+    <div class="item1">
+    </div>
+    <div class="game">
+      <canvas id="canvas" width="1066" height="600"></canvas>
+    </div>
+    <div class="item1">
+    </div>
+  </div>
+  <div class="container">
+    <div class="item1"></div>
+    <div class="item3">
+      <input id="input_txt" type="text" autofocus>
+    </div>
+    <div class="item1"></div>
+  </div>
+  <style src="style.css"></style>
+  <script type="text/javascript" src="typist.js"></script>
+  <script type="text/javascript" src="effect.js"></script>
+  <script>
+    const game_width = 1066;
+    const game_height = 500;
+    const tile_width = game_width / 5;
+    const tile_height = game_height / 10;
+    const time_step = 1 / 20 * 1000;
+
+    let input_txt = document.getElementById("input_txt");
+    let inst_txt = document.getElementById("inst_txt");
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+
+    let typer_state = create_typist(game_width, game_height);
+    let effect = create_effect();
+
+    let last_game_state = typer_state.game_state;
+
+    function draw_word(ctx, word) {
+      ctx.font = "30px Courier";
+      ctx.fillStyle = "black";
+      ctx.textAlign = "center";
+      ctx.fillText(word.txt, word.x * tile_width + tile_width / 2, word.y * tile_height + tile_height, tile_width);
+    }
+
+    function draw(ctx, state) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (word of state.active_words.values()) {
+        draw_word(ctx, word);
+      }
+      draw_effect(ctx, effect);
+    }
+
+    function proc() {
+      if (typer_state.game_state == 1) {
+        inst_txt.innerHTML = "Just start typing in " + (typer_state.starting_in / 1000).toFixed(1) + "s."
+        input_txt.setAttribute("disabled", true);
+      } else if (typer_state.game_state == 2) {
+        inst_txt.innerHTML = "You typed " + typer_state.word_count + "" + (typer_state.word_count == 1 ? " word" : " words") + " and have " + (typer_state.time_left / 1000).toFixed(1) + "s remaining. Press Ctrl + R to restart.";
+        if (last_game_state == 1) {
+          input_txt.value = "";
+          input_txt.removeAttribute("disabled");
+        }
+        input_txt.focus();
+      } else if (typer_state.game_state == 3) {
+        inst_txt.innerHTML = "You typed " + typer_state.word_count + (typer_state.word_count == 1 ? " word" : " words") + " in one minute. Press Ctrl + R to restart!";
+        input_txt.setAttribute("disabled", true);
+        clearInterval(timer_handle);
+      }
+
+      last_game_state = typer_state.game_state;
+      typer_state.input_txt = input_txt.value;
+
+      update_typist(typer_state, time_step);
+
+      if (typer_state.hit != undefined) {
+        let pos = { x: typer_state.hit.x * tile_width + tile_width / 2, y: typer_state.hit.y * tile_height + tile_height };
+        spawn_effect(effect, pos, typer_state.hit.txt);
+        input_txt.value = "";
+      }
+
+      update_effect(effect, time_step)
+      draw(ctx, typer_state);
+    }
+
+    let timer_handle = setInterval(proc, time_step);
+  </script>
+</body>
+
+</html>
